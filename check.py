@@ -274,7 +274,7 @@ def plot_absorption_signals(fig, df, signals):
         bgcolor="rgba(0,0,0,0.7)",
         font=dict(color="white", size=12, family="Courier New, monospace"),
         bordercolor="white",
-        borderwidth=0
+        borderwidth=1
     )
     return fig
 
