@@ -520,16 +520,6 @@ if company_symbol:
             ),
             # Add zoom and pan capabilities
             dragmode="zoom",  # Enable box zoom
-            annotations=[
-                dict(
-                    text=f"Quantexo 🕵️ <br> {company_symbol}",
-                    xref="paper", yref="paper",
-                    x=0.5, y=0.5,
-                    xanchor="center", yanchor="middle",
-                    font=dict(size=25, color="rgba(59, 59, 59)"),
-                    showarrow=False
-                )
-            ]
         )
         fig.update_xaxes(
             rangeselector=dict(
