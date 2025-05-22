@@ -408,6 +408,18 @@ if company_symbol:
         df, active_absorptions = detect_seller_absorption(df)
 
         fig = go.Figure()
+        # Add watermark annotation first (behind everything)
+        fig.add_annotation(
+            xref="paper", yref="paper",
+            x=0.5, y=0.5,
+            text=f"Quantexo<br>{company_symbol}",
+            showarrow=False,
+            font=dict(
+                size=40,
+                color="rgba(128,128,128,0.2)"  # Semi-transparent gray
+            ),
+            align="center",
+        )
         fig.add_trace(go.Scatter(
             x=df['date'], y=df['close'],
             mode='lines', name='Close Price',
@@ -457,23 +469,34 @@ if company_symbol:
                 )
             ))
         
-        # Add absorption signals to chart
+         # Add absorption signals to chart
         if active_absorptions:
             fig = plot_absorption_signals(fig, df, active_absorptions)
             
-            # Create a summary table
-            absorption_data = []
+            # Create summary table annotation
+            table_text = ["<b>SELLER ABSORPTION TRADE</b>", 
+                          "Entry | Stop | Targets"]
             for sig in active_absorptions:
-                absorption_data.append({
-                    "Date": sig['date'].strftime('%Y-%m-%d'),
-                    "Entry": f"{sig['entry']:.2f}",
-                    "Stop Loss": f"{sig['stop_loss']:.2f}",
-                    "Targets": " | ".join([f"TP{i+1}: {t:.2f}" for i,t in enumerate(sig['targets'])])
-                })
-            
-            st.subheader("🚀 Active Seller Absorption Signals")
-            st.table(pd.DataFrame(absorption_data))
+                targets = "<br>".join([f"TP{i+1}: {t:.2f}" for i,t in enumerate(sig['targets'])])
+                table_text.append(
+                    f"{sig['entry']:.2f} | {sig['stop_loss']:.2f} | {targets}"
+                )
 
+            fig.add_annotation(
+                xref="paper", yref="paper",
+                x=0.95, y=0.95,
+                text="<br>".join(table_text),
+                showarrow=False,
+                align="right",
+                bgcolor="rgba(0,0,0,0.7)",
+                font=dict(
+                    color="white",
+                    size=12,
+                    family="Courier New, monospace"  # Monospace for alignment
+                ),
+                bordercolor="white",
+                borderwidth=1
+            )
         # Calculate 20 days ahead of the last date
         last_date = df['date'].max()
         extended_date = last_date + timedelta(days=20)
