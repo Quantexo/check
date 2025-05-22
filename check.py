@@ -273,9 +273,7 @@ def plot_absorption_signals(fig, df, signals):
         showarrow=False,
         align="left",
         bgcolor="rgba(0,0,0,0)",  # Changed to visible background
-        font=dict(color="white", size=12, family="Courier New, monospace"),
-        bordercolor="white",
-        borderwidth=1
+        font=dict(color="white", size=12, family="Courier New, monospace")
     )
     return fig
 
