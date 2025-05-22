@@ -179,14 +179,12 @@ def detect_seller_absorption(df, min_targets=2, max_targets=12):
                     hit = subsequent_data[subsequent_data['high'] >= target]
                     if not hit.empty:
                         hit_dates[j] = hit.iloc[0]['date']
-                        
+
                 # Determine stop loss (below recent swing low)
                 stop_loss = swing_low - (atr * 0.5)
                 
                 # Calculate targets (based on historical resistance zones)
                 targets = []
-                price_range = swing_high - entry
-                
                 # Find meaningful historical resistance levels
                 resistance_levels = find_historical_resistance(df[:i], entry, swing_high)
                 
@@ -196,11 +194,19 @@ def detect_seller_absorption(df, min_targets=2, max_targets=12):
                 else:
                     # Fallback to Fibonacci levels if not enough resistance zones found
                     fib_levels = [0.236, 0.382, 0.5, 0.618, 0.786, 1.0, 1.272, 1.414, 1.618, 2.0, 2.618, 3.0]
+                    price_range = swing_high - entry
                     targets = [entry + (price_range * level) for level in fib_levels[:max_targets]]
                 
+                # Ensure targets exists even if empty
+                targets = targets if 'targets' in locals() else []
+                targets = [t for t in targets if t > entry]
+
                 # Validate targets (must be > entry price)
                 targets = [t for t in targets if t > entry]
                 
+                if not targets:
+                    continue  # Skip signals with no valid targets
+
                 signals.append({
                     'date': current['date'],
                     'entry': entry,
