@@ -257,7 +257,7 @@ def plot_absorption_signals(fig, df, signals):
         # Targets section
         targets_text = []
         for i, (target, hit_date) in enumerate(zip(signals['targets'], signals['hit_dates'])):
-            status = f"HIT on {hit_date.strftime('%b %d, %Y')}" if hit_date and pd.notnull(hit_date) else ""
+            status = f"HIT on {hit_date.strftime('%b %d, %Y')}" if hit_date else ""
             pct = format_pct_change(signals['entry'], target)
             targets_text.append(f"- TP {i+1} = {target:.2f} {pct} {status}")
         
