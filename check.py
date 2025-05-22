@@ -165,24 +165,6 @@ def detect_seller_absorption(df, min_targets=2, max_targets=12):
                 swing_low = df['low'].iloc[max(0,i-20):i].min()
                 atr = df['atr'].iloc[i]
 
-                # Calculate conservative entries (Fibonacci-based)
-                conservative_entries = [
-                    entry + (swing_high - entry) * 0.236,
-                    entry + (swing_high - entry) * 0.382,
-                    entry - (entry - swing_low) * 0.618
-                ]
-
-                # Track target hit dates
-                hit_dates = [None] * len(targets)
-                subsequent_data = df[df['date'] > current['date']]
-                for j, target in enumerate(targets):
-                    hit = subsequent_data[subsequent_data['high'] >= target]
-                    if not hit.empty:
-                        hit_dates[j] = hit.iloc[0]['date']
-
-                # Determine stop loss (below recent swing low)
-                stop_loss = swing_low - (atr * 0.5)
-                
                 # Calculate targets (based on historical resistance zones)
                 targets = []
                 # Find meaningful historical resistance levels
@@ -197,15 +179,23 @@ def detect_seller_absorption(df, min_targets=2, max_targets=12):
                     price_range = swing_high - entry
                     targets = [entry + (price_range * level) for level in fib_levels[:max_targets]]
                 
-                # Ensure targets exists even if empty
-                targets = targets if 'targets' in locals() else []
-                targets = [t for t in targets if t > entry]
-
-                # Validate targets (must be > entry price)
-                targets = [t for t in targets if t > entry]
-                
+                # Validate targets
+                targets = [t for t in targets if t > entry][:max_targets]
                 if not targets:
-                    continue  # Skip signals with no valid targets
+                    continue
+
+                # NOW calculate other values that depend on targets
+                swing_low = df['low'].iloc[max(0,i-20):i].min()
+                atr = df['atr'].iloc[i]
+                conservative_entries = [
+                    entry + (swing_high - entry) * 0.236,
+                    entry + (swing_high - entry) * 0.382,
+                    entry - (entry - swing_low) * 0.618
+                ]
+                hit_dates = [None] * len(targets)  # Now targets is defined
+
+                # Determine stop loss (below recent swing low)
+                stop_loss = swing_low - (atr * 0.5)
 
                 signals.append({
                     'date': current['date'],
@@ -267,7 +257,7 @@ def plot_absorption_signals(fig, df, signals):
         # Targets section
         targets_text = []
         for i, (target, hit_date) in enumerate(zip(sig['targets'], sig['hit_dates'])):
-            status = f"HIT on {hit_date.strftime('%b %d, %Y')}" if hit_date else ""
+            status = f"HIT on {hit_date.strftime('%b %d, %Y')}" if hit_date and pd.notnull(hit_date) else ""
             pct = format_pct_change(sig['entry'], target)
             targets_text.append(f"- TP {i+1} = {target:.2f} {pct} {status}")
         
