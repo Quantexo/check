@@ -250,20 +250,20 @@ def plot_absorption_signals(fig, df, signals):
             
         # Entry section
         table_content.extend([
-            f"<b>Aggressive Entry</b> = {signals['entry']:.2f} ({signals['date'].strftime('%b %d, %Y')})",
-            f"<b>Conservative Entry</b> = {signals['conservative_entries'][0]:.2f}, {signals['conservative_entries'][1]:.2f}, {signals['conservative_entries'][2]:.2f}"
+            f"<b>Aggressive Entry</b> = {signal['entry']:.2f} ({signal['date'].strftime('%b %d, %Y')})",
+            f"<b>Conservative Entry</b> = {signal['conservative_entries'][0]:.2f}, {signal['conservative_entries'][1]:.2f}, {signal['conservative_entries'][2]:.2f}"
         ])
         
         # Targets section
         targets_text = []
-        for i, (target, hit_date) in enumerate(zip(signals['targets'], signals['hit_dates'])):
+        for i, (target, hit_date) in enumerate(zip(signal['targets'], signal['hit_dates'])):
             status = f"HIT on {hit_date.strftime('%b %d, %Y')}" if hit_date else ""
-            pct = format_pct_change(signals['entry'], target)
+            pct = format_pct_change(signal['entry'], target)
             targets_text.append(f"- TP {i+1} = {target:.2f} {pct} {status}")
         
         # Stop loss section
-        sl_pct = format_pct_change(signals['entry'], signals['stop_loss'])
-        table_content.extend(targets_text + ["", f"<b>Stop Loss</b> = {signals['stop_loss']:.2f} {sl_pct}"])
+        sl_pct = format_pct_change(signal['entry'], signal['stop_loss'])
+        table_content.extend(targets_text + ["", f"<b>Stop Loss</b> = {signal['stop_loss']:.2f} {sl_pct}"])
 
     fig.add_annotation(
         xref="paper", yref="paper",
