@@ -476,22 +476,6 @@ if company_symbol:
                     f"{tag_labels.get(tag, tag)}<extra></extra>"
                 )
             ))
-        
-            fig.add_annotation(
-                xref="paper", yref="paper",
-                x=0.95, y=0.95,
-                text="<br>".join(table_text),
-                showarrow=False,
-                align="right",
-                bgcolor="rgba(0,0,0,0.7)",
-                font=dict(
-                    color="white",
-                    size=12,
-                    family="Courier New, monospace"  # Monospace for alignment
-                ),
-                bordercolor="white",
-                borderwidth=1
-            )
         # Calculate 20 days ahead of the last date
         last_date = df['date'].max()
         extended_date = last_date + timedelta(days=20)
