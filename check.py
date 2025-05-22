@@ -271,7 +271,7 @@ def plot_absorption_signals(fig, df, signals):
         text="<br>".join(table_content),
         showarrow=False,
         align="left",
-        bgcolor="rgba(0,0,0,0)",
+        bgcolor="rgba(0,0,0,0.2)",
         font=dict(color="white", size=12, family="Courier New, monospace"),
         bordercolor="",
         borderwidth=0
@@ -477,20 +477,6 @@ if company_symbol:
                 )
             ))
         
-            fig.add_annotation(
-                xref="paper", yref="paper",
-                x=0.95, y=0.95,
-                text="<br>".join(table_content),
-                showarrow=False,
-                align="right",
-                bgcolor="rgba(0,0,0,0.7)",
-                font=dict(
-                    color="white",
-                    size=12,
-                    family="Courier New, monospace"  # Monospace for alignment
-                ),
-                borderwidth=0
-            )
         # Calculate 20 days ahead of the last date
         last_date = df['date'].max()
         extended_date = last_date + timedelta(days=20)
