@@ -265,13 +265,14 @@ def plot_absorption_signals(fig, df, signals):
         sl_pct = format_pct_change(signal['entry'], signal['stop_loss'])
         table_content.extend(targets_text + ["", f"<b>Stop Loss</b> = {signal['stop_loss']:.2f} {sl_pct}"])
 
+    # Add summary table
     fig.add_annotation(
         xref="paper", yref="paper",
         x=0.03, y=0.97,
         text="<br>".join(table_content),
         showarrow=False,
         align="left",
-        bgcolor="rgba(0,0,0,0.7)",
+        bgcolor="rgba(0,0,0,0.7)",  # Changed to visible background
         font=dict(color="white", size=12, family="Courier New, monospace"),
         bordercolor="white",
         borderwidth=1
