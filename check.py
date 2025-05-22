@@ -392,7 +392,10 @@ if company_symbol:
         # Detect signals
         results = detect_signals(df)
         # Detect seller absorption patterns
-        df, active_absorptions = detect_seller_absorption(df)
+        df, all_absorptions = detect_seller_absorption(df)
+
+        if all_absorptions:
+            fig = plot_absorption_signals(fig, df, all_absorptions)
 
         fig = go.Figure()
         # Add watermark annotation first (behind everything)
@@ -407,8 +410,6 @@ if company_symbol:
             ),
             align="center",
         )
-        if active_absorptions:
-            fig = plot_absorption_signals(fig, df, active_absorptions)
 
         fig.add_trace(go.Scatter(
             x=df['date'], y=df['close'],
