@@ -272,7 +272,7 @@ def plot_absorption_signals(fig, df, signals):
         text="<br>".join(table_content),
         showarrow=False,
         align="left",
-        bgcolor="rgba(0,0,0,0.7)",  # Changed to visible background
+        bgcolor="rgba(0,0,0,0)",  # Changed to visible background
         font=dict(color="white", size=12, family="Courier New, monospace"),
         bordercolor="white",
         borderwidth=1
@@ -431,7 +431,7 @@ if company_symbol:
         )
         if active_absorptions:
             fig = plot_absorption_signals(fig, df, active_absorptions)
-            
+
         fig.add_trace(go.Scatter(
             x=df['date'], y=df['close'],
             mode='lines', name='Close Price',
