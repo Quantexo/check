@@ -223,8 +223,10 @@ def format_pct_change(entry, price):
 def plot_absorption_signals(fig, df, signals):
     """Add absorption signals to the chart with formatted summary table"""
     table_content = ["<b>SELLER ABSORPTION TRADE</b>"]
+    latest_date = df['date'].max()
 
     for signal in signals:
+        days_old = (latest_date - signal['date']).days
         if signal['hit_stop']:
             continue
             
@@ -392,11 +394,7 @@ if company_symbol:
         # Detect signals
         results = detect_signals(df)
         # Detect seller absorption patterns
-        df, all_absorptions = detect_seller_absorption(df)
-
-        if all_absorptions:
-            fig = plot_absorption_signals(fig, df, all_absorptions)
-
+        
         fig = go.Figure()
         # Add watermark annotation first (behind everything)
         fig.add_annotation(
@@ -410,7 +408,11 @@ if company_symbol:
             ),
             align="center",
         )
+        df, all_absorptions = detect_seller_absorption(df)
 
+        if all_absorptions:
+            fig = plot_absorption_signals(fig, df, all_absorptions)
+            
         fig.add_trace(go.Scatter(
             x=df['date'], y=df['close'],
             mode='lines', name='Close Price',
