@@ -271,7 +271,7 @@ def plot_absorption_signals(fig, df, signals):
         text="<br>".join(table_content),
         showarrow=False,
         align="left",
-        bgcolor="rgba(0,0,0,0.2)",
+        bgcolor="rgba(0,0,0,0.5)",
         font=dict(color="white", size=12, family="Courier New, monospace"),
         bordercolor="",
         borderwidth=0
