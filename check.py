@@ -213,27 +213,7 @@ def detect_seller_absorption(df, min_targets=2, max_targets=12):
                 df.at[i, 'stop_loss'] = stop_loss
                 df.at[i, 'targets'] = targets
     
-    # Track which signals are still active
-    active_signals = []
-    for signal in signals:
-        # Check if stop was hit
-        subsequent_prices = df[df['date'] > signal['date']]['low']
-        if not subsequent_prices.empty and any(subsequent_prices <= signal['stop_loss']):
-            signal['hit_stop'] = True
-            continue
-        
-        # Check which targets were hit
-        subsequent_highs = df[df['date'] > signal['date']]['high']
-        if not subsequent_highs.empty:
-            for j, target in enumerate(signal['targets']):
-                if any(subsequent_highs >= target):
-                    signal['hit_targets'][j] = True
-        
-        # Only keep signals that aren't fully resolved
-        if not all(signal['hit_targets']):
-            active_signals.append(signal)
-    
-    return df, active_signals
+    return df, signals
 
 # Add this function to format percentage changes
 def format_pct_change(entry, price):
