@@ -164,7 +164,22 @@ def detect_seller_absorption(df, min_targets=2, max_targets=12):
                 swing_high = df['high'].iloc[max(0,i-20):i].max()
                 swing_low = df['low'].iloc[max(0,i-20):i].min()
                 atr = df['atr'].iloc[i]
-                
+
+                # Calculate conservative entries (Fibonacci-based)
+                conservative_entries = [
+                    entry + (swing_high - entry) * 0.236,
+                    entry + (swing_high - entry) * 0.382,
+                    entry - (entry - swing_low) * 0.618
+                ]
+
+                # Track target hit dates
+                hit_dates = [None] * len(targets)
+                subsequent_data = df[df['date'] > current['date']]
+                for j, target in enumerate(targets):
+                    hit = subsequent_data[subsequent_data['high'] >= target]
+                    if not hit.empty:
+                        hit_dates[j] = hit.iloc[0]['date']
+                        
                 # Determine stop loss (below recent swing low)
                 stop_loss = swing_low - (atr * 0.5)
                 
@@ -186,12 +201,13 @@ def detect_seller_absorption(df, min_targets=2, max_targets=12):
                 # Validate targets (must be > entry price)
                 targets = [t for t in targets if t > entry]
                 
-                # Store the signal
                 signals.append({
                     'date': current['date'],
                     'entry': entry,
                     'stop_loss': stop_loss,
                     'targets': targets,
+                    'conservative_entries': conservative_entries,
+                    'hit_dates': hit_dates,
                     'hit_stop': False,
                     'hit_targets': [False] * len(targets)
                 })
@@ -223,51 +239,47 @@ def detect_seller_absorption(df, min_targets=2, max_targets=12):
     
     return df, active_signals
 
+# Add this function to format percentage changes
+def format_pct_change(entry, price):
+    pct = ((price - entry) / entry) * 100
+    return f"({abs(pct):.2f}%)"
+
 def plot_absorption_signals(fig, df, signals):
-    """Add absorption signals to the chart"""
+    """Add absorption signals to the chart with formatted summary table"""
+    table_content = ["<b>SELLER ABSORPTION TRADE</b>"]
+
     for signal in signals:
         if signal['hit_stop']:
             continue
             
-        # Entry point
-        fig.add_annotation(
-            x=signal['date'], y=signal['entry'],
-            text="ENTRY",
-            showarrow=True,
-            arrowhead=1,
-            ax=0, ay=-40,
-            bgcolor="red",
-            font=dict(color="white")
-        )
+        # Entry section
+        table_content.extend([
+            f"<b>Aggressive Entry</b> = {sig['entry']:.2f} ({sig['date'].strftime('%b %d, %Y')})",
+            f"<b>Conservative Entry</b> = {sig['conservative_entries'][0]:.2f}, {sig['conservative_entries'][1]:.2f}, {sig['conservative_entries'][2]:.2f}"
+        ])
         
-        # Stop loss
-        fig.add_shape(
-            type="line",
-            x0=signal['date'], y0=signal['stop_loss'],
-            x1=df['date'].max(), y1=signal['stop_loss'],
-            line=dict(color="red", dash="dot"),
-            name="Stop Loss"
-        )
+        # Targets section
+        targets_text = []
+        for i, (target, hit_date) in enumerate(zip(sig['targets'], sig['hit_dates'])):
+            status = f"HIT on {hit_date.strftime('%b %d, %Y')}" if hit_date else ""
+            pct = format_pct_change(sig['entry'], target)
+            targets_text.append(f"- TP {i+1} = {target:.2f} {pct} {status}")
         
-        # Targets
-        for j, target in enumerate(signal['targets']):
-            fig.add_shape(
-                type="line",
-                x0=signal['date'], y0=target,
-                x1=df['date'].max(), y1=target,
-                line=dict(color="green", dash="dot"),
-                name=f"Target {j+1}"
-            )
-            fig.add_annotation(
-                x=signal['date'], y=target,
-                text=f"TP {j+1}",
-                showarrow=True,
-                arrowhead=1,
-                ax=0, ay=40,
-                bgcolor="green",
-                font=dict(color="white")
-            )
-    
+        # Stop loss section
+        sl_pct = format_pct_change(sig['entry'], sig['stop_loss'])
+        table_content.extend(targets_text + ["", f"<b>Stop Loss</b> = {sig['stop_loss']:.2f} {sl_pct}"])
+
+    fig.add_annotation(
+        xref="paper", yref="paper",
+        x=0.03, y=0.97,
+        text="<br>".join(table_content),
+        showarrow=False,
+        align="left",
+        bgcolor="rgba(0,0,0,0.7)",
+        font=dict(color="white", size=12, family="Courier New, monospace"),
+        bordercolor="white",
+        borderwidth=1
+    )
     return fig
 
 def detect_signals(df):
