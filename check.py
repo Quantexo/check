@@ -271,10 +271,10 @@ def plot_absorption_signals(fig, df, signals):
         text="<br>".join(table_content),
         showarrow=False,
         align="left",
-        bgcolor="rgba(0,0,0,0.7)",
+        bgcolor="rgba(0,0,0,0)",
         font=dict(color="white", size=12, family="Courier New, monospace"),
-        bordercolor="white",
-        borderwidth=1
+        bordercolor="",
+        borderwidth=0
     )
     return fig
 
@@ -477,19 +477,6 @@ if company_symbol:
                 )
             ))
         
-         # Add absorption signals to chart
-        if active_absorptions:
-            fig = plot_absorption_signals(fig, df, active_absorptions)
-            
-            # Create summary table annotation
-            table_text = ["<b>SELLER ABSORPTION TRADE</b>", 
-                          "Entry | Stop | Targets"]
-            for sig in active_absorptions:
-                targets = "<br>".join([f"TP{i+1}: {t:.2f}" for i,t in enumerate(sig['targets'])])
-                table_text.append(
-                    f"{sig['entry']:.2f} | {sig['stop_loss']:.2f} | {targets}"
-                )
-
             fig.add_annotation(
                 xref="paper", yref="paper",
                 x=0.95, y=0.95,
