@@ -429,6 +429,9 @@ if company_symbol:
             ),
             align="center",
         )
+        if active_absorptions:
+            fig = plot_absorption_signals(fig, df, active_absorptions)
+            
         fig.add_trace(go.Scatter(
             x=df['date'], y=df['close'],
             mode='lines', name='Close Price',
