@@ -182,6 +182,7 @@ def detect_seller_absorption(df, min_targets=2, max_targets=12):
             
             # Only signal if no active absorption is pending
             if not df['absorption'].iloc[i-5:i].any():
+                df['tag'] = ''
                 df.at[i, 'absorption'] = True
                 df.at[i, 'tag'] = '🚀'
                 
