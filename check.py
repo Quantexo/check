@@ -173,6 +173,13 @@ def detect_seller_absorption(df, min_targets=2, max_targets=12):
     for i in range(2, len(df)):
         current = df.iloc[i]
         prev = df.iloc[i-1]
+        # Calculate price gain from recent low
+        recent_low = df['low'].iloc[max(0, i - 60):i].min()
+        price_gain_pct = (current['close'] - recent_low) / recent_low
+
+        # Skip signal if price has already gained more than 60%
+        if price_gain_pct > 0.60:
+            continue
         
         # Seller Absorption Criteria
         if (prev['open'] > prev['close'] and  # Bearish candle
