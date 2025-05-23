@@ -159,7 +159,7 @@ def find_historical_resistance(df, current_price, swing_high, lookback_periods =
     
     return resistance_levels
 
-def detect_seller_absorption(df, min_targets=3, max_targets=5):
+def detect_seller_absorption(df, min_targets=3, max_targets=15):
     signals = []
     df['absorption'] = False
     df['entry_price'] = None
