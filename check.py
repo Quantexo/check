@@ -159,7 +159,7 @@ def find_historical_resistance(df, current_price, swing_high, lookback_periods =
     
     return resistance_levels
 
-def detect_seller_absorption(df, min_targets=2, max_targets=12):
+def detect_seller_absorption(df, min_targets=3, max_targets=5):
     signals = []
     df['absorption'] = False
     df['entry_price'] = None
@@ -200,79 +200,50 @@ def detect_seller_absorption(df, min_targets=2, max_targets=12):
                 swing_low = df['low'].iloc[max(0,i-20):i].min()
                 atr = df['atr'].iloc[i]
 
-                # Calculate targets (based on historical resistance zones)
+                # Calculate stop loss (max 8% from entry)
+                max_sl_pct = entry * 0.92  # 8% below entry
+                proposed_sl = min(swing_low, max_sl_pct)  # Take the tighter stop
+                
+                # Ensure stop isn't too tight (minimum 3% below entry)
+                min_sl_pct = entry * 0.97
+                stop_loss = max(proposed_sl, min_sl_pct)
+                
+                # Calculate targets (focused on 15-20% gains)
                 targets = []
-                # Find meaningful historical resistance levels
+                
+                # Method 1: Find nearby historical resistance (within 20%)
                 resistance_levels = find_historical_resistance(df[:i], entry, swing_high)
-                valid_resistance = [r for r in resistance_levels if r > entry]
+                nearby_resistance = [r for r in resistance_levels if (r > entry) and (r <= entry * 1.20)]
                 
-                # Use found resistance levels or create Fibonacci-based ones
-                if len(valid_resistance) >= min_targets:
-                    targets = sorted(valid_resistance[:max_targets])
-                else:
-                    # Method 2: Enhanced Fibonacci + ATR-based targets
-                    # Use a more dynamic price range calculation
-                    price_range = max(
-                        swing_high - entry,  # Range to recent high
-                        atr * 10,  # ATR-based range
-                        entry * 0.15  # 15% of entry price as minimum range
-                    )
-
-                    # Extended Fibonacci levels for more targets
-                    fib_levels = [0.236, 0.382, 0.5, 0.618, 0.786, 1.0, 1.272, 1.414, 1.618, 2.0, 2.272, 2.618]
+                if nearby_resistance:
+                    targets.extend(nearby_resistance[:max_targets])
+                
+                # Method 2: Use tighter Fibonacci levels if needed
+                if len(targets) < max_targets:
+                    fib_levels = [0.05, 0.10, 0.15, 0.20]  # Only near-term levels
+                    price_range = max(atr * 3, entry * 0.10)  # Conservative range
                     fib_targets = [entry + (price_range * level) for level in fib_levels]
-                    
-                    # ATR-based targets (multiple of ATR)
-                    atr_multipliers = [2, 3, 4, 5, 6, 8, 10, 12, 15, 20]
-                    atr_targets = [entry + (atr * mult) for mult in atr_multipliers]
-                    
-                    # Percentage-based targets
-                    pct_levels = [0.03, 0.05, 0.08, 0.10, 0.15, 0.20, 0.25, 0.30, 0.40, 0.50]
-                    pct_targets = [entry * (1 + pct) for pct in pct_levels]
-                    
-                    # Combine all methods
-                    all_targets = valid_resistance + fib_targets + atr_targets + pct_targets
-                    
-                    # Filter and sort
-                    valid_targets = [t for t in all_targets if t > entry]
-                    valid_targets = sorted(list(set(valid_targets)))  # Remove duplicates
-                    
-                    # Take the best spread of targets
-                    if len(valid_targets) >= max_targets:
-                        # Select targets with good spacing
-                        targets = []
-                        last_target = entry
-                        min_spacing = entry * 0.02  # Minimum 2% spacing between targets
-                        
-                        for target in valid_targets:
-                            if target - last_target >= min_spacing:
-                                targets.append(target)
-                                last_target = target
-                                if len(targets) >= max_targets:
-                                    break
-                    else:
-                        targets = valid_targets
+                    targets.extend(fib_targets)
                 
-                # Ensure we have at least minimum targets
-                if len(targets) < min_targets:
-                    # Force create targets using simple percentage method
-                    pct_increments = [0.05, 0.10, 0.15, 0.20, 0.25, 0.30, 0.40, 0.50, 0.60, 0.80, 1.0, 1.5]
-                    targets = [entry * (1 + pct) for pct in pct_increments[:max_targets]]
+                # Method 3: Simple percentage targets as fallback
+                if len(targets) < max_targets:
+                    pct_targets = [
+                        entry * 1.05,
+                        entry * 1.10,
+                        entry * 1.15,
+                        entry * 1.20
+                    ]
+                    targets.extend(pct_targets)
                 
-                # Final validation and trimming
-                targets = [t for t in targets if t > entry][:max_targets]
+                # Finalize targets (remove duplicates, sort, and limit)
+                targets = sorted(list(set([t for t in targets if t > entry])))
+                targets = targets[:max_targets]
                 
-                if not targets:
-                    continue  # Skip if no valid targets
-                
-                # Calculate stop loss
-                stop_loss = swing_low - (atr * 0.5)
-                
-                # Conservative entries
+                # Conservative entries (closer to stop loss)
                 conservative_entries = [
-                    entry + (swing_high - entry) * 0.236,
-                    entry + (swing_high - entry) * 0.382,
-                    entry - (entry - swing_low) * 0.618
+                    entry * 0.99,  # 1% below
+                    entry * 0.98,  # 2% below
+                    stop_loss * 1.01  # Just above stop
                 ]
                 
                 hit_dates = [None] * len(targets)
@@ -292,7 +263,8 @@ def detect_seller_absorption(df, min_targets=2, max_targets=12):
                 df.at[i, 'entry_price'] = entry
                 df.at[i, 'stop_loss'] = stop_loss
                 df.at[i, 'targets'] = targets
-    # NEW CODE: Analyze which targets were hit
+    
+    # Analyze which targets were hit
     for signal in signals:
         subsequent_data = df[df['date'] > signal['date']]
         
@@ -302,12 +274,14 @@ def detect_seller_absorption(df, min_targets=2, max_targets=12):
             signal['hit_stop'] = True
             signal['stop_hit_date'] = stop_hits.iloc[0]['date']
         
-        # Check which targets were hit
+        # Check which targets were hit (within 20 trading days)
+        subsequent_data = subsequent_data.head(20)
         for i, target in enumerate(signal['targets']):
             target_hits = subsequent_data[subsequent_data['high'] >= target]
             if not target_hits.empty:
                 signal['hit_targets'][i] = True
                 signal['hit_dates'][i] = target_hits.iloc[0]['date']
+    
     return df, signals
 
 # Add this function to format percentage changes
