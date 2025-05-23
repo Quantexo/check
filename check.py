@@ -108,7 +108,7 @@ def get_sheet_data(symbol, sheet_name="Daily Price"):
         st.error(f"🔴 Error fetching data: {str(e)}")
         return pd.DataFrame(), None
 
-def find_historical_resistance(df, current_price, swing_high, lookback_period = 100):
+def find_historical_resistance(df, current_price, swing_high, lookback_periods = 100):
     """Identify valid resistance levels from price history"""
     resistance_levels = []
     
