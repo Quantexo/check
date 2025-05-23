@@ -292,22 +292,6 @@ def detect_signals(df):
         
         if (
             row['close'] > row['open'] and
-            row['close'] >= row['high'] - (row['high'] - row['low']) * 0.1 and
-            row['volume'] > avg_volume[i] * 2 and
-            body > prev_body and
-            '🟢' not in recent_tags.values
-        ):
-            df.at[i, 'tag'] = '🟢'
-        if (
-            row['open'] > row['close'] and
-            row['close'] <= row['low'] + (row['high'] - row['low']) * 0.1 and
-            row['volume'] > avg_volume[i] * 2 and
-            body > prev_body and
-            '🔴' not in recent_tags.values
-        ):
-            df.at[i, 'tag'] = '🔴'
-        if (
-            row['close'] > row['open'] and
             row['volume'] > avg_volume[i] * 1.2
         ):
             df.loc[df['tag'] == '⛔', 'tag'] = ''
@@ -324,6 +308,22 @@ def detect_signals(df):
                 if candle['close'] > row['open']:
                     df.at[j, 'tag'] = '🚀'
                     break
+        if (
+            row['close'] > row['open'] and
+            row['close'] >= row['high'] - (row['high'] - row['low']) * 0.1 and
+            row['volume'] > avg_volume[i] * 2 and
+            body > prev_body and
+            '🟢' not in recent_tags.values
+        ):
+            df.at[i, 'tag'] = '🟢'
+        if (
+            row['open'] > row['close'] and
+            row['close'] <= row['low'] + (row['high'] - row['low']) * 0.1 and
+            row['volume'] > avg_volume[i] * 2 and
+            body > prev_body and
+            '🔴' not in recent_tags.values
+        ):
+            df.at[i, 'tag'] = '🔴'
         if (
             i >= 10 and
             row['close'] > max(df['high'].iloc[i - 10:i]) and
