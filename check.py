@@ -236,35 +236,31 @@ def format_pct_change(entry, price):
     return f"({abs(pct):.2f}%)"
 
 def plot_absorption_signals(fig, df, signals):
-    """Add only the most recent absorption signal to the chart with formatted summary table"""
-    if not signals:
-        return fig
-    
-    # Find the most recent active signal (not hit stop, not all targets hit)
-    active_signals = [s for s in signals if not s['hit_stop'] and not all(s.get('hit_targets', []))]
-    if not active_signals:
-        return fig
-    
-    latest_signal = max(active_signals, key=lambda x: x['date'])
-    
+    """Add absorption signals to the chart with formatted summary table"""
     table_content = ["<b>SELLER ABSORPTION TRADE</b>"]
-    
-    # Entry section
-    table_content.extend([
-        f"<b>Aggressive Entry</b> = {latest_signal['entry']:.2f} ({latest_signal['date'].strftime('%b %d, %Y')})",
-        f"<b>Conservative Entry</b> = {latest_signal['conservative_entries'][0]:.2f}, {latest_signal['conservative_entries'][1]:.2f}, {latest_signal['conservative_entries'][2]:.2f}"
-    ])
-    
-    # Targets section
-    targets_text = []
-    for i, (target, hit_date) in enumerate(zip(latest_signal['targets'], latest_signal['hit_dates'])):
-        status = f"HIT on {hit_date.strftime('%b %d, %Y')}" if hit_date else ""
-        pct = format_pct_change(latest_signal['entry'], target)
-        targets_text.append(f"- TP {i+1} = {target:.2f} {pct} {status}")
-    
-    # Stop loss section
-    sl_pct = format_pct_change(latest_signal['entry'], latest_signal['stop_loss'])
-    table_content.extend(targets_text + ["", f"<b>Stop Loss</b> = {latest_signal['stop_loss']:.2f} {sl_pct}"])
+    latest_date = df['date'].max()
+
+    for signal in signals:
+        days_old = (latest_date - signal['date']).days
+        if signal['hit_stop']:
+            continue
+            
+        # Entry section
+        table_content.extend([
+            f"<b>Aggressive Entry</b> = {signal['entry']:.2f} ({signal['date'].strftime('%b %d, %Y')})",
+            f"<b>Conservative Entry</b> = {signal['conservative_entries'][0]:.2f}, {signal['conservative_entries'][1]:.2f}, {signal['conservative_entries'][2]:.2f}"
+        ])
+        
+        # Targets section
+        targets_text = []
+        for i, (target, hit_date) in enumerate(zip(signal['targets'], signal['hit_dates'])):
+            status = f"HIT on {hit_date.strftime('%b %d, %Y')}" if hit_date else ""
+            pct = format_pct_change(signal['entry'], target)
+            targets_text.append(f"- TP {i+1} = {target:.2f} {pct} {status}")
+        
+        # Stop loss section
+        sl_pct = format_pct_change(signal['entry'], signal['stop_loss'])
+        table_content.extend(targets_text + ["", f"<b>Stop Loss</b> = {signal['stop_loss']:.2f} {sl_pct}"])
 
     # Add summary table
     fig.add_annotation(
