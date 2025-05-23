@@ -209,7 +209,7 @@ def detect_seller_absorption(df, min_targets=3, max_targets=15):
                 
                 # Ensure stop isn't too tight (minimum 3% below entry)
                 min_sl_pct = entry * 0.97
-                stop_loss = max(proposed_sl, min_sl_pct)
+                stop_loss = min(proposed_sl, min_sl_pct)
                 
                 # Calculate targets (focused on 15-20% gains)
                 targets = []
@@ -223,7 +223,7 @@ def detect_seller_absorption(df, min_targets=3, max_targets=15):
                 
                 # Method 2: Use tighter Fibonacci levels if needed
                 if len(targets) < max_targets:
-                    fib_levels = [0.05, 0.10, 0.15, 0.20]  # Only near-term levels
+                    fib_levels = [0.25, 0.33, 0.44, 0.65]  # Only near-term levels
                     price_range = max(atr * 3, entry * 0.10)  # Conservative range
                     fib_targets = [entry + (price_range * level) for level in fib_levels]
                     targets.extend(fib_targets)
