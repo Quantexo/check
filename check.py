@@ -236,34 +236,36 @@ def format_pct_change(entry, price):
     return f"({abs(pct):.2f}%)"
 
 def plot_absorption_signals(fig, df, signals):
-    """Add absorption signals to the chart with formatted summary table"""
+    """Add absorption signals to the chart with formatted summary table - ONLY MOST RECENT TRADE"""
     table_content = ["<b>SELLER ABSORPTION TRADE</b>"]
     latest_date = df['date'].max()
 
     # Filter to get only active signals (not hit stop loss)
     active_signals = [signal for signal in signals if not signal['hit_stop']]
-
+    
     # If we have active signals, get the most recent one
     if active_signals:
         # Sort by date and get the most recent signal
         most_recent_signal = max(active_signals, key=lambda x: x['date'])
-            
+        
         # Entry section
         table_content.extend([
-            f"<b>Aggressive Entry</b> = {signal['entry']:.2f} ({signal['date'].strftime('%b %d, %Y')})",
-            f"<b>Conservative Entry</b> = {signal['conservative_entries'][0]:.2f}, {signal['conservative_entries'][1]:.2f}, {signal['conservative_entries'][2]:.2f}"
+            f"<b>Aggressive Entry</b> = {most_recent_signal['entry']:.2f} ({most_recent_signal['date'].strftime('%b %d, %Y')})",
+            f"<b>Conservative Entry</b> = {most_recent_signal['conservative_entries'][0]:.2f}, {most_recent_signal['conservative_entries'][1]:.2f}, {most_recent_signal['conservative_entries'][2]:.2f}"
         ])
         
         # Targets section
         targets_text = []
-        for i, (target, hit_date) in enumerate(zip(signal['targets'], signal['hit_dates'])):
+        for i, (target, hit_date) in enumerate(zip(most_recent_signal['targets'], most_recent_signal['hit_dates'])):
             status = f"HIT on {hit_date.strftime('%b %d, %Y')}" if hit_date else ""
-            pct = format_pct_change(signal['entry'], target)
+            pct = format_pct_change(most_recent_signal['entry'], target)
             targets_text.append(f"- TP {i+1} = {target:.2f} {pct} {status}")
         
         # Stop loss section
-        sl_pct = format_pct_change(signal['entry'], signal['stop_loss'])
-        table_content.extend(targets_text + ["", f"<b>Stop Loss</b> = {signal['stop_loss']:.2f} {sl_pct}"])
+        sl_pct = format_pct_change(most_recent_signal['entry'], most_recent_signal['stop_loss'])
+        table_content.extend(targets_text + ["", f"<b>Stop Loss</b> = {most_recent_signal['stop_loss']:.2f} {sl_pct}"])
+    else:
+        table_content.append("No active seller absorption trades found.")
 
     # Add summary table
     fig.add_annotation(
