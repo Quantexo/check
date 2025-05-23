@@ -199,8 +199,8 @@ def detect_seller_absorption(df, min_targets=3, max_targets=15):
                 
                 # Calculate levels
                 entry = current['close']
-                swing_high = df['high'].iloc[max(0,i-20):i].max()
-                swing_low = df['low'].iloc[max(0,i-20):i].min()
+                swing_high = df['high'].iloc[max(0,i-50):i].max()
+                swing_low = df['low'].iloc[max(0,i-50):i].min()
                 atr = df['atr'].iloc[i]
 
                 # Calculate stop loss (max 8% from entry)
