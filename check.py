@@ -247,9 +247,12 @@ def plot_absorption_signals(fig, df, signals):
         days_old = (latest_date - signal['date']).days
         opacity = max(0.3, 1.0 - (days_old / 100))
 
+        if not isinstance (signal, dict):
+            continue
         if signal.get['hit_stop', False]:
             continue
-            
+        hit_dates = signal.get('hit_dates', [])
+        
         # Entry section
         table_content.extend([
             f"<b>Aggressive Entry</b> = {signal['entry']:.2f} ({signal['date'].strftime('%b %d, %Y')})",
