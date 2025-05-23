@@ -179,10 +179,7 @@ def detect_seller_absorption(df, min_targets=3, max_targets=15):
             prev['volume'] > prev['avg_volume'] * 1.7 and  # High volume
             current['close'] > prev['open'] and  # Price moves above previous open
             current['volume'] > current['avg_volume'] * 1.5):  # Confirming volume
-            df.loc[df['tag'] == '🚀', 'tag'] = ''
-            df.at[i, 'absorption'] = True
-            df.at[i, 'tag'] = '🚀'
-
+            
             print(f"🔥 Signal detected on: {current['date']} (Row {i})")  # Debug print
 
             # Calculate price gain from recent low
@@ -193,8 +190,9 @@ def detect_seller_absorption(df, min_targets=3, max_targets=15):
             if price_gain_pct > 0.60:
                 continue
 
-            # Only signal if no active absorption is pending
-            if not df['absorption'].iloc[i-5:i].any():
+            # Only signal if no active absorption is pending (check last 5 bars)
+            if not df['absorption'].iloc[max(0, i-5):i].any():
+                # Clear any previous 🚀 tags
                 df.loc[df['tag'] == '🚀', 'tag'] = ''
                 df.at[i, 'absorption'] = True
                 df.at[i, 'tag'] = '🚀'
@@ -261,8 +259,13 @@ def detect_seller_absorption(df, min_targets=3, max_targets=15):
                     'conservative_entries': conservative_entries,
                     'hit_dates': hit_dates,
                     'hit_stop': False,
-                    'hit_targets': [False] * len(targets)
+                    'hit_targets': [False] * len(targets),
+                    'is_current_signal': True  # Mark as the current signal
                 })
+                
+                # Mark all previous signals as not current
+                for prev_signal in signals[:-1]:
+                    prev_signal['is_current_signal'] = False
                 
                 # Update dataframe
                 df.at[i, 'entry_price'] = entry
@@ -295,36 +298,52 @@ def format_pct_change(entry, price):
     return f"({abs(pct):.2f}%)"
 
 def plot_absorption_signals(fig, df, signals):
-    """Add absorption signals to the chart with formatted summary table - ONLY MOST RECENT TRADE"""
+    """Add absorption signals to the chart with formatted summary table - SHOWS CURRENT TAGGED TRADE"""
     table_content = ["<b>SELLER ABSORPTION TRADE</b>"]
-    latest_date = df['date'].max()
-
-    # Filter to get only active signals (not hit stop loss)
-    active_signals = [signal for signal in signals if not signal['hit_stop']]
     
-    # If we have active signals, get the most recent one
-    if active_signals:
-        # Sort by date and get the most recent signal
-        most_recent_signal = max(active_signals, key=lambda x: x['date'])
+    # Find the signal that corresponds to the currently tagged 🚀 on the chart
+    current_signal = None
+    
+    # First, try to find the signal marked as current
+    for signal in signals:
+        if signal.get('is_current_signal', False):
+            current_signal = signal
+            break
+    
+    # If no current signal found, get the most recent signal (whether active or not)
+    if current_signal is None and signals:
+        current_signal = max(signals, key=lambda x: x['date'])
+    
+    if current_signal:
+        # Determine trade status
+        trade_status = ""
+        if current_signal['hit_stop']:
+            trade_status = f" [STOPPED OUT on {current_signal['stop_hit_date'].strftime('%b %d, %Y')}]"
+        elif any(current_signal['hit_targets']):
+            hit_count = sum(current_signal['hit_targets'])
+            trade_status = f" [ACTIVE - {hit_count} targets hit]"
+        else:
+            trade_status = " [ACTIVE]"
         
         # Entry section
         table_content.extend([
-            f"<b>Aggressive Entry</b> = {most_recent_signal['entry']:.2f} ({most_recent_signal['date'].strftime('%b %d, %Y')})",
-            f"<b>Conservative Entry</b> = {most_recent_signal['conservative_entries'][0]:.2f}, {most_recent_signal['conservative_entries'][1]:.2f}, {most_recent_signal['conservative_entries'][2]:.2f}"
+            f"<b>Aggressive Entry</b> = {current_signal['entry']:.2f} ({current_signal['date'].strftime('%b %d, %Y')}){trade_status}",
+            f"<b>Conservative Entry</b> = {current_signal['conservative_entries'][0]:.2f}, {current_signal['conservative_entries'][1]:.2f}, {current_signal['conservative_entries'][2]:.2f}"
         ])
         
         # Targets section
         targets_text = []
-        for i, (target, hit_date) in enumerate(zip(most_recent_signal['targets'], most_recent_signal['hit_dates'])):
-            status = f"HIT on {hit_date.strftime('%b %d, %Y')}" if hit_date else ""
-            pct = format_pct_change(most_recent_signal['entry'], target)
+        for i, (target, hit_date) in enumerate(zip(current_signal['targets'], current_signal['hit_dates'])):
+            status = f"✅ HIT on {hit_date.strftime('%b %d')}" if hit_date else "⏳ PENDING"
+            pct = format_pct_change(current_signal['entry'], target)
             targets_text.append(f"- TP {i+1} = {target:.2f} {pct} {status}")
         
         # Stop loss section
-        sl_pct = format_pct_change(most_recent_signal['entry'], most_recent_signal['stop_loss'])
-        table_content.extend(targets_text + ["", f"<b>Stop Loss</b> = {most_recent_signal['stop_loss']:.2f} {sl_pct}"])
+        sl_pct = format_pct_change(current_signal['entry'], current_signal['stop_loss'])
+        stop_status = f"❌ HIT on {current_signal['stop_hit_date'].strftime('%b %d')}" if current_signal['hit_stop'] else "⏳ ACTIVE"
+        table_content.extend(targets_text + ["", f"<b>Stop Loss</b> = {current_signal['stop_loss']:.2f} {sl_pct} {stop_status}"])
     else:
-        table_content.append("No active seller absorption trades found.")
+        table_content.append("No seller absorption trades found.")
 
     # Add summary table
     fig.add_annotation(
@@ -333,7 +352,7 @@ def plot_absorption_signals(fig, df, signals):
         text="<br>".join(table_content),
         showarrow=False,
         align="left",
-        bgcolor="rgba(0,0,0,0)",  # Changed to visible background
+        bgcolor="rgba(0,0,0,0)",
         font=dict(color="white", size=12, family="Courier New, monospace")
     )
     return fig
