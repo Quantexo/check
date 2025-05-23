@@ -208,8 +208,8 @@ def detect_seller_absorption(df, min_targets=3, max_targets=15):
                 proposed_sl = min(swing_low, max_sl_pct)  # Take the tighter stop
                 
                 # Ensure stop isn't too tight (minimum 3% below entry)
-                min_sl_pct = entry * 0.97
-                stop_loss = min(proposed_sl, min_sl_pct)
+                min_sl_pct = entry * 0.95
+                stop_loss = max(proposed_sl, min_sl_pct)
                 
                 # Calculate targets (focused on 15-20% gains)
                 targets = []
