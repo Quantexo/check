@@ -240,36 +240,64 @@ def plot_absorption_signals(fig, df, signals):
     if not signals:
         return fig
 
-    #Find the most recet signals that hasn't hit stop loss
+    # Convert dates to datetime if they aren't already
+    df['date'] = pd.to_datetime(df['date'])
+    for signal in signals:
+        signal['date'] = pd.to_datetime(signal['date'])
+        if 'hit_dates' in signal:
+            signal['hit_dates'] = [pd.to_datetime(d) if d else None for d in signal['hit_dates']]
+    
+    # Find the most recent signal that hasn't hit stop loss and isn't fully hit
     latest_active_signal = None
-    for signal in reversed(signals): #check from the newest to oldest
-        if not signal['hit_stop']:
-            latest_active_signal = signal
-            break
+    current_date = pd.to_datetime('now')
+    
+    for signal in sorted(signals, key=lambda x: x['date'], reverse=True):
+        # Skip if stop was hit
+        if signal.get('hit_stop', False):
+            continue
+            
+        # Skip if all targets were hit
+        if all(signal.get('hit_targets', [])):
+            continue
+            
+        latest_active_signal = signal
+        break
     
     if not latest_active_signal:
-        return fig #No active signal to show
+        return fig
     
-    table_content = ["<b>SELLER ABSORPTION TRADE</b>"]
-    latest_date = df['date'].max()
-    days_old = (latest_date - latest_active_signal['date']).days
-    # Entry section
+    # Prepare the content
+    table_content = [
+        "<b>SELLER ABSORPTION TRADE</b>",
+        f"<b>Signal Date:</b> {latest_active_signal['date'].strftime('%b %d, %Y')}",
+        "",
+        f"<b>Aggressive Entry:</b> {latest_active_signal['entry']:.2f}",
+        f"<b>Conservative Entries:</b> {latest_active_signal['conservative_entries'][0]:.2f}, "
+        f"{latest_active_signal['conservative_entries'][1]:.2f}, "
+        f"{latest_active_signal['conservative_entries'][2]:.2f}",
+        ""
+    ]
+    
+    # Add targets
+    table_content.append("<b>Targets:</b>")
+    for i, (target, hit, hit_date) in enumerate(zip(
+        latest_active_signal['targets'],
+        latest_active_signal.get('hit_targets', []),
+        latest_active_signal.get('hit_dates', [])
+    )):
+        status = ""
+        if hit and hit_date:
+            status = f" (HIT on {hit_date.strftime('%b %d, %Y')})"
+        pct_change = format_pct_change(latest_active_signal['entry'], target)
+        table_content.append(f"TP{i+1}: {target:.2f} {pct_change}{status}")
+    
+    # Add stop loss
     table_content.extend([
-        f"<b>Aggressive Entry</b> = {signal['entry']:.2f} ({signal['date'].strftime('%b %d, %Y')})",
-        f"<b>Conservative Entry</b> = {signal['conservative_entries'][0]:.2f}, {signal['conservative_entries'][1]:.2f}, {signal['conservative_entries'][2]:.2f}"
+        "",
+        f"<b>Stop Loss:</b> {latest_active_signal['stop_loss']:.2f} "
+        f"{format_pct_change(latest_active_signal['entry'], latest_active_signal['stop_loss'])}"
     ])
-    
-    # Targets section
-    targets_text = []
-    for i, (target, hit_date) in enumerate(zip(signal['targets'], signal['hit_dates'])):
-        status = f"HIT on {hit_date.strftime('%b %d, %Y')}" if hit_date else ""
-        pct = format_pct_change(signal['entry'], target)
-        targets_text.append(f"- TP {i+1} = {target:.2f} {pct} {status}")
-    
-    # Stop loss section
-    sl_pct = format_pct_change(signal['entry'], signal['stop_loss'])
-    table_content.extend(targets_text + ["", f"<b>Stop Loss</b> = {signal['stop_loss']:.2f} {sl_pct}"])
-    # Add summary table
+
     fig.add_annotation(
         xref="paper", yref="paper",
         x=0.03, y=0.97,
