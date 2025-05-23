@@ -176,9 +176,9 @@ def detect_seller_absorption(df, min_targets=2, max_targets=12):
         
         # Seller Absorption Criteria
         if (prev['open'] > prev['close'] and  # Bearish candle
-            prev['volume'] > prev['avg_volume'] * 1.5 and  # High volume
+            prev['volume'] > prev['avg_volume'] * 1.7 and  # High volume
             current['close'] > prev['open'] and  # Price moves above previous open
-            current['volume'] > current['avg_volume'] * 1.2):  # Confirming volume
+            current['volume'] > current['avg_volume'] * 1.5):  # Confirming volume
             
             # Calculate price gain from recent low
             recent_low = df['low'].iloc[max(0, i - 60):i].min()
@@ -187,7 +187,7 @@ def detect_seller_absorption(df, min_targets=2, max_targets=12):
             # Skip signal if price has already gained more than 60%
             if price_gain_pct > 0.60:
                 continue
-            
+
             # Only signal if no active absorption is pending
             if not df['absorption'].iloc[i-5:i].any():
                 df.loc[df['tag'] == '🚀', 'tag'] = ''
