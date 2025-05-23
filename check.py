@@ -240,10 +240,13 @@ def plot_absorption_signals(fig, df, signals):
     table_content = ["<b>SELLER ABSORPTION TRADE</b>"]
     latest_date = df['date'].max()
 
-    for signal in signals:
-        days_old = (latest_date - signal['date']).days
-        if signal['hit_stop']:
-            continue
+    # Filter to get only active signals (not hit stop loss)
+    active_signals = [signal for signal in signals if not signal['hit_stop']]
+
+    # If we have active signals, get the most recent one
+    if active_signals:
+        # Sort by date and get the most recent signal
+        most_recent_signal = max(active_signals, key=lambda x: x['date'])
             
         # Entry section
         table_content.extend([
@@ -525,66 +528,3 @@ if company_symbol:
         st.error(f"⚠️ Processing error: {str(e)}")
 else:
     st.info("ℹ👆🏻 Enter a company symbol to get analysed chart 👆🏻")
-
-def show_legend():
-    with st.expander("📚 Signal Reference Guide", expanded=False):
-                st.markdown("""
-                **Signal Legend:**
-                - 🟢 Aggressive Buying
-                - 🔴 Aggressive Selling
-                - ⛔ Buyer Absorption  
-                - 🚀 Seller Absorption
-                - 💥 Bullish Breakout
-                - 💣 Bearish Breakdown
-                - 🐂 Bullish POI
-                - 🐻 Bearish POI
-                
-                **Seller Absorption Trade:**
-                - Entry at close of absorption candle
-                - Stop loss below recent swing low
-                - Multiple targets based on resistance levels (2-12)
-                - New signals only appear after previous trade is resolved
-                """)
-if st.sidebar.button("📚 Signal Reference Guide"):
-    show_legend()
-def show_source():
-    with st.expander("ℹ️ About Data Source"):
-        st.markdown("""
-        **Data Source Information:*
-        - **Source**: NEPSE market data via Google Sheets
-        - **Update Frequency**: End-of-trading hour (EOTH) data updated daily by 3:30 PM NPT
-        - **History**: Contains up to 2 year of historical data
-        - **Fields**: Open, High, Low, Close, Volume for all listed companies
-        **Note**: This is official data extracted from [NEPSE](https://nepalstock.com/).
-        """)
-if st.sidebar.button("ℹ️ About Data Source"):
-    show_source()
-def show_faqs():
-    with st.expander("🔍 General Questions"):
-        st.markdown("""
-        **Q: Why don't I see any signals for my stock?**  
-        A: This typically means no strong patterns were detected in the recent price action according to our algorithms.
-
-        **Q: How often is the data updated?**  
-        A: After the end of continuous session, data is updated daily by 3:30 PM NPT.
-        """)
-
-    with st.expander("📈 Technical Questions"):
-        st.markdown("""
-        **Q: What's the difference between 🟢 and 🐂 signals?**  
-        A: 🟢 indicates aggressive buying with strong volume, while 🐂 shows particularly large bullish candles (>85% range).
-
-        **Q: How are seller absorption targets calculated?**  
-        A: We first look for historical resistance levels, then fall back to Fibonacci extensions if needed.
-        """)
-
-    with st.expander("💾 Data Questions"):
-        st.markdown("""
-        **Q: Where does the data come from?**  
-        A: Our Google Sheets aggregation of NEPSE market data (Extracted from [NEPSE](https://nepalstock.com/)).
-
-        **Q: How can I get historical data?**  
-        A: Currently we provide 1.5 year of historical data.
-        """)
-if st.sidebar.button("❓ Frequently Asked Questions"):
-    show_faqs()
