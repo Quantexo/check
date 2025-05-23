@@ -176,7 +176,7 @@ def detect_seller_absorption(df, min_targets=3, max_targets=15):
         
         # Seller Absorption Criteria
         if (prev['open'] > prev['close'] and  # Bearish candle
-            prev['volume'] > prev['avg_volume'] * 1.7 and  # High volume
+            prev['volume'] > prev['avg_volume'] * 2 and  # High volume
             current['close'] > prev['open'] and  # Price moves above previous open
             current['volume'] > current['avg_volume'] * 2):  # Confirming volume
             
