@@ -428,7 +428,6 @@ if company_symbol:
             ),
             align="center",
         )
-        df['date'] = pd.to_dateframe(df['date'])
         df, all_absorptions = detect_seller_absorption(df)
 
         if all_absorptions:
