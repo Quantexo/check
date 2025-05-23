@@ -319,7 +319,7 @@ def plot_absorption_signals(fig, df, signals):
         trade_status = ""
         if current_signal['hit_stop']:
             trade_status = f" [STOPPED OUT on {current_signal['stop_hit_date'].strftime('%b %d, %Y')}]"
-        elif any(current_signal['hit_targets']):
+        elif any(current_signal['hit_targets'].strftime('%b %d, %Y')):
             hit_count = sum(current_signal['hit_targets'])
             trade_status = f" [ACTIVE - {hit_count} targets hit]"
         else:
@@ -334,13 +334,13 @@ def plot_absorption_signals(fig, df, signals):
         # Targets section
         targets_text = []
         for i, (target, hit_date) in enumerate(zip(current_signal['targets'], current_signal['hit_dates'])):
-            status = f"✅ HIT on {hit_date.strftime('%b %d')}" if hit_date else "⏳ PENDING"
+            status = f"✅ HIT on {hit_date.strftime('%b %d, %Y')}" if hit_date else "⏳ PENDING"
             pct = format_pct_change(current_signal['entry'], target)
             targets_text.append(f"- TP {i+1} = {target:.2f} {pct} {status}")
         
         # Stop loss section
         sl_pct = format_pct_change(current_signal['entry'], current_signal['stop_loss'])
-        stop_status = f"❌ HIT on {current_signal['stop_hit_date'].strftime('%b %d')}" if current_signal['hit_stop'] else "⏳ ACTIVE"
+        stop_status = f"❌ HIT on {current_signal['stop_hit_date'].strftime('%b %d, %Y')}" if current_signal['hit_stop'] else "⏳ ACTIVE"
         table_content.extend(targets_text + ["", f"<b>Stop Loss</b> = {current_signal['stop_loss']:.2f} {sl_pct} {stop_status}"])
     else:
         table_content.append("No seller absorption trades found.")
