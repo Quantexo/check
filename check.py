@@ -183,6 +183,7 @@ def detect_seller_absorption(df, min_targets=2, max_targets=12):
             # Only signal if no active absorption is pending
             if not df['absorption'].iloc[i-5:i].any():
                 df.at[i, 'absorption'] = True
+                df.at[i, 'tag'] = '🚀'
                 
                 # Calculate levels
                 entry = current['close']
@@ -373,15 +374,6 @@ def detect_signals(df):
             for j, candle in next_candles.iterrows():
                 if candle['close'] < row['open']:
                     df.at[j, 'tag'] = '⛔'
-                    break
-        if (
-            row['open'] > row['close'] and
-            row['volume'] > avg_volume[i] * 1.2
-        ):
-            df.loc[df['tag'] == '🚀', 'tag'] = ''
-            for j, candle in next_candles.iterrows():
-                if candle['close'] > row['open']:
-                    df.at[j, 'tag'] = '🚀'
                     break
         if (
             row['close'] > row['open'] and
