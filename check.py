@@ -180,9 +180,9 @@ def detect_seller_absorption(df, min_targets=3, max_targets=5):
             current['close'] > prev['open'] and  # Price moves above previous open
             current['volume'] > current['avg_volume'] * 1.5):  # Confirming volume
             df.loc[df['tag'] == '🚀', 'tag'] = ''
-                df.at[i, 'absorption'] = True
-                df.at[i, 'tag'] = '🚀'
-                
+            df.at[i, 'absorption'] = True
+            df.at[i, 'tag'] = '🚀'
+
             print(f"🔥 Signal detected on: {current['date']} (Row {i})")  # Debug print
 
             # Calculate price gain from recent low
