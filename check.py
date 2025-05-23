@@ -237,22 +237,14 @@ def format_pct_change(entry, price):
 
 def plot_absorption_signals(fig, df, signals):
     """Add absorption signals to the chart with formatted summary table"""
-    if not signals:
-        return fig
-
     table_content = ["<b>SELLER ABSORPTION TRADE</b>"]
     latest_date = df['date'].max()
 
     for signal in signals:
         days_old = (latest_date - signal['date']).days
-        opacity = max(0.3, 1.0 - (days_old / 100))
-
-        if not isinstance (signal, dict):
+        if signal['hit_stop']:
             continue
-        if signal.get['hit_stop', False]:
-            continue
-        hit_dates = signal.get('hit_dates', [])
-        
+            
         # Entry section
         table_content.extend([
             f"<b>Aggressive Entry</b> = {signal['entry']:.2f} ({signal['date'].strftime('%b %d, %Y')})",
