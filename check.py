@@ -319,7 +319,7 @@ def plot_absorption_signals(fig, df, signals):
         trade_status = ""
         if current_signal['hit_stop']:
             trade_status = f" [STOPPED OUT on {current_signal['stop_hit_date'].strftime('%b %d, %Y')}]"
-        elif any(current_signal['hit_targets'].strftime('%b %d, %Y')):
+        elif any(current_signal['hit_targets']):
             hit_count = sum(current_signal['hit_targets'])
             trade_status = f" [ACTIVE - {hit_count} targets hit]"
         else:
