@@ -108,29 +108,54 @@ def get_sheet_data(symbol, sheet_name="Daily Price"):
         st.error(f"🔴 Error fetching data: {str(e)}")
         return pd.DataFrame(), None
 
-def find_historical_resistance(df, current_price, swing_high):
+def find_historical_resistance(df, current_price, swing_high, lookback_period = 100):
     """Identify valid resistance levels from price history"""
     resistance_levels = []
     
-    # Find previous swing highs that held as resistance
-    peaks = df[(df['high'] > current_price) & (df['high'] < swing_high)]
-    if not peaks.empty:
-        # Cluster nearby peaks
-        cluster_threshold = (swing_high - current_price) * 0.05
-        clustered_peaks = []
+    # Look at more historical data for better resistance detection
+    historical_data = df.tail(lookback_periods) if len(df) > lookback_periods else df
+
+    # Method 1: Find previous swing highs (more flexible criteria)
+    # Look for highs that are above current price (potential resistance)
+    potential_resistance = historical_data[historical_data['high'] > current_price]
+
+    if not potential_resistance.empty:
+        # Get unique high values and sort them
+        high_values = sorted(potential_resistance['high'].unique())
+        
+        # Cluster nearby resistance levels
+        cluster_threshold = current_price * 0.02  # 2% clustering threshold
+        clustered_levels = []
         current_cluster = []
-        
-        for _, row in peaks.sort_values('high').iterrows():
-            if not current_cluster or (row['high'] - current_cluster[-1] <= cluster_threshold):
-                current_cluster.append(row['high'])
+
+        for high_val in high_values:
+            if not current_cluster or (high_val - current_cluster[-1] <= cluster_threshold):
+                current_cluster.append(high_val)
             else:
-                clustered_peaks.append(np.mean(current_cluster))
-                current_cluster = [row['high']]
+                # Add average of current cluster
+                clustered_levels.append(np.mean(current_cluster))
+                current_cluster = [high_val]
         
+        # Don't forget the last cluster
         if current_cluster:
-            clustered_peaks.append(np.mean(current_cluster))
+            clustered_levels.append(np.mean(current_cluster))
         
-        resistance_levels = sorted(list(set(clustered_peaks)))
+        resistance_levels.extend(clustered_levels)
+    
+    # Method 2: Add psychological levels (round numbers)
+    # Find round numbers above current price
+    price_magnitude = 10 ** (len(str(int(current_price))) - 1)  # e.g., 100 for prices like 150-999
+    
+    psychological_levels = []
+    for multiplier in [1, 2, 5, 10, 15, 20, 25, 50]:
+        level = price_magnitude * multiplier
+        if level > current_price and level <= swing_high * 2:  # Don't go too far above swing high
+            psychological_levels.append(level)
+    
+    resistance_levels.extend(psychological_levels)
+    
+    # Remove duplicates and sort
+    resistance_levels = sorted(list(set(resistance_levels)))
     
     return resistance_levels
 
@@ -169,34 +194,79 @@ def detect_seller_absorption(df, min_targets=2, max_targets=12):
                 targets = []
                 # Find meaningful historical resistance levels
                 resistance_levels = find_historical_resistance(df[:i], entry, swing_high)
+                valid_resistance = [r for r in resistance_levels if r > entry]
                 
                 # Use found resistance levels or create Fibonacci-based ones
-                if len(resistance_levels) >= min_targets:
-                    targets = sorted(resistance_levels[:max_targets])
+                if len(valid_resistance) >= min_targets:
+                    targets = sorted(valid_resistance[:max_targets])
                 else:
-                    # Fallback to Fibonacci levels if not enough resistance zones found
-                    fib_levels = [0.236, 0.382, 0.5, 0.618, 0.786, 1.0, 1.272, 1.414, 1.618, 2.0, 2.618, 3.0]
-                    price_range = swing_high - entry
-                    targets = [entry + (price_range * level) for level in fib_levels[:max_targets]]
-                
-                # Validate targets
-                targets = [t for t in targets if t > entry][:max_targets]
-                if not targets:
-                    continue
+                    # Method 2: Enhanced Fibonacci + ATR-based targets
+                    # Use a more dynamic price range calculation
+                    price_range = max(
+                        swing_high - entry,  # Range to recent high
+                        atr * 10,  # ATR-based range
+                        entry * 0.15  # 15% of entry price as minimum range
+                    )
 
-                # NOW calculate other values that depend on targets
-                swing_low = df['low'].iloc[max(0,i-20):i].min()
-                atr = df['atr'].iloc[i]
+                    # Extended Fibonacci levels for more targets
+                    fib_levels = [0.236, 0.382, 0.5, 0.618, 0.786, 1.0, 1.272, 1.414, 1.618, 2.0, 2.272, 2.618]
+                    fib_targets = [entry + (price_range * level) for level in fib_levels]
+                    
+                    # ATR-based targets (multiple of ATR)
+                    atr_multipliers = [2, 3, 4, 5, 6, 8, 10, 12, 15, 20]
+                    atr_targets = [entry + (atr * mult) for mult in atr_multipliers]
+                    
+                    # Percentage-based targets
+                    pct_levels = [0.03, 0.05, 0.08, 0.10, 0.15, 0.20, 0.25, 0.30, 0.40, 0.50]
+                    pct_targets = [entry * (1 + pct) for pct in pct_levels]
+                    
+                    # Combine all methods
+                    all_targets = valid_resistance + fib_targets + atr_targets + pct_targets
+                    
+                    # Filter and sort
+                    valid_targets = [t for t in all_targets if t > entry]
+                    valid_targets = sorted(list(set(valid_targets)))  # Remove duplicates
+                    
+                    # Take the best spread of targets
+                    if len(valid_targets) >= max_targets:
+                        # Select targets with good spacing
+                        targets = []
+                        last_target = entry
+                        min_spacing = entry * 0.02  # Minimum 2% spacing between targets
+                        
+                        for target in valid_targets:
+                            if target - last_target >= min_spacing:
+                                targets.append(target)
+                                last_target = target
+                                if len(targets) >= max_targets:
+                                    break
+                    else:
+                        targets = valid_targets
+                
+                # Ensure we have at least minimum targets
+                if len(targets) < min_targets:
+                    # Force create targets using simple percentage method
+                    pct_increments = [0.05, 0.10, 0.15, 0.20, 0.25, 0.30, 0.40, 0.50, 0.60, 0.80, 1.0, 1.5]
+                    targets = [entry * (1 + pct) for pct in pct_increments[:max_targets]]
+                
+                # Final validation and trimming
+                targets = [t for t in targets if t > entry][:max_targets]
+                
+                if not targets:
+                    continue  # Skip if no valid targets
+                
+                # Calculate stop loss
+                stop_loss = swing_low - (atr * 0.5)
+                
+                # Conservative entries
                 conservative_entries = [
                     entry + (swing_high - entry) * 0.236,
                     entry + (swing_high - entry) * 0.382,
                     entry - (entry - swing_low) * 0.618
                 ]
-                hit_dates = [None] * len(targets)  # Now targets is defined
-
-                # Determine stop loss (below recent swing low)
-                stop_loss = swing_low - (atr * 0.5)
-
+                
+                hit_dates = [None] * len(targets)
+                
                 signals.append({
                     'date': current['date'],
                     'entry': entry,
